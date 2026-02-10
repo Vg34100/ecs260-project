@@ -1,0 +1,299 @@
+Drift Drift Prompt Drift as 
+a Reliability 
+Risk 
+in Software 
+Engineering 
+Ethan Chen 
+Khoi Nguyen 
+Pei-Yu Lin 
+Pablo Rodriguez 
+Shuang Ma 
+01-26-26 An empirical investigation into 
+the stability of LLMs in code 
+generation and testing pipelines. 
+
+The Problem 
+Software Engineering relies on deterministic inputs and 
+outputs. However , LLMs exhibit "Prompt Drift” - output 
+instability even under rigid constraints. Performance 
+gaps between best and worst runs can reach 70%. 15% 
+Accuracy 
+V ariance 
+Project Goat: Empirically measure drift 
+across Code Gent Summarization, and 
+Bug Detection. 
+We usually expect software to be deterministic. like, if I put in the same input, I should get the same output. But LLMs don't 
+do that. Even with the most rigid settings, we see accuracy swinging by like 15%,. So, our goal is to measure this 'drift' 
+across different tasks to see how big of a problem it really is 
+
+4 32 1Research Questions 
+1 2
+3 4Consistency Sensitivity 
+Model Comparison Drivers How consistent are code LLMs 
+across repeated identical prompts? How sensitive are models to 
+semantically equivalent 
+prompt paraphrasing? 
+Which models (GPT-4 vs. 
+Llama-3/CodeLlama) exhibit the 
+highest stability? What task characteristics 
+contribute most to instability? 
+To figure this out, we have four main questions. First, if we repeat the exact same prompt, does the code change? Second, if we change 
+the wording just a little bit—like paraphrasing—does the model break? Third, we want to compare models like GPT-4 and Llama-3 to see 
+which one is more stable. And fourth, we want to know why—what makes a task unstable 
+
+Paper 1 - Overview 
+Source: Atil et al., Non-Determinism of 'Deterministic' LLM Settings Key Findings 
+1. Investigation: 5 Models x 
+8 T asks x 10 Runs. 
+2. The Gap: Up to 15% 
+accuracy variance across 
+identical runs. 
+3. The Extremes: 
+Performance gap between 
+'Best' and 'Worst' run 
+reached 70%. 
+4.  Conclusion: Non- 
+demintized: 
+Non-determinism 
+is likely inherent to efficient 
+compute infrastructure 
+(batching, hardware). 
+Even with determinism is an engineering illusion. 
+Instability is a system feature. 
+Our first main idea comes from this paper by Atil and others. They call it the 'Temperature=0 Myth'. Basically, everyone thinks 
+setting temperature to zero makes the model stable, but this graph shows that's not true. You still get up to 15% difference in 
+accuracy even with greedy decoding,. So, we can't just rely on settings to fix this 
+
+Paper 1 - Metrics 
+TARr TARa (Raw Agreement) (Answer Agreement) 
+Output 1: “The value is 5” 
+Output 1: “The value is 5” Output 1: “ Answer: 5” 
+Output 1: “The result is 5” 
+MATCH SEMANTIC MATCH 
+We separate ‘string stability’ from ‘semantic stability’. 
+A model can be accurate but unstable 
+Since the output keeps changing, we have to carefully define what 'agreement' even means. We’re using two metrics from 
+that same paper. 'Raw Agreement' (TARr) checks if the text is exactly the same string,. 'Answer Agreement' (TARa) checks if 
+the meaning is the same—like if one says 'The value is 5' and the other says 'The result is 5,' that counts as a match for us 
+
+Paper 1 - Relevance 
+Atil et al. (2024) 
+Conﬁrms ‘Drift’ is an 
+infrastructure reality 
+Establishes TAR baselines Inference 
+Noise Methodology Control 
+- N=10 repeated runs 
+per prompt 
+- Measure drift, not 
+just accuracy 
+- Use TAR metrics for 
+summarization System Factors 
+- Sparse Operations 
+- Continuous Batching 
+So, this dictates how we built our pipeline. Because there's this 'inference noise' from the system itself, we can't just run a 
+prompt once. We’re going to run every prompt 10 times. This way, we aren't just checking if the code is right; we're 
+measuring how much it drifts across those 10 runs to see how stable it really is 
+
+Paper 2 Problem Deﬁnition 
+A slight change in the 
+deﬁnition of the class “ENTY” 
+causes a minor prompt 
+variation that disrupts the 
+LLAMA's prediction. This 
+happens under the hood, 
+making it very hard for a 
+developer to debug the 
+program. 
+Insight: 
+A tiny change can dramatically ﬂip the model’s prediction. 
+Accuracy alone does not tell developers how unstable a model is or why it fails. 
+How can we quantify the sensitivity of an LLM to variations of the prompt? 
+Sensitivity , measuring how much predictions change under semantically equivalent prompt variations 
+Consistency , measuring how stable predictions are across samples of the same class. 
+Errica et al., What Did I Do Wrong? Quantifying LLMs’ Sensitivity and Consistency to Prompt Engineering, NEC. 
+
+Paper 2: Methodology 
+Metric 1: Sensitivity 
+How much predictions vary under prompt rephrasings 
+● Deﬁned as normalized entropy  of distribution: 
+● Expected sensitivity: 
+Metric 2: Consistency 
+How similar predictions are across samples of the same class 
+● T otal V ariation Distance (TVD): 
+● Pair-wise consistency 
+● Expected consistency: 
+
+
+Paper  2: Results 
+Sensitivity for each sample of the dataset according to different prompting strategies. 
+Violin plot of the Llama3 consistency over samples of the same classes, arranged by 
+prompting technique, on different datasets. 
+
+Paper 3 Motivation 
+Measuring LLM Code Generation Stability via Structural Entropy 
+● LLMs often generate different code for the same 
+prompt. 
+● This variability reduces reliability and 
+reproducibility. 
+● Existing metrics focus on correctness, not 
+consistency. 
+● They study how to directly measure code 
+generation stability 
+
+
+Phase1: Subtree 
+Extraction 
+Input: Generation 
+Code(T a, Tb) 
+Action: Parse to AST -> 
+Extract depth-bounded 
+subtrees 
+Output: canonical encoding Phase2: Empirical 
+Distributions 
+Actions: Count how often 
+each subtree pattern 
+appears. 
+Calculation: Count 
+frequencies -> Normalize to 
+vectors(P ,Q) 
+Output: subtree frequency 
+vector Phase3: Similarity 
+Matrix 
+Action:Compare subtree 
+distributions between code 
+samples. 
+Metrics: Structural 
+Cross-Entropy (SCE) and 
+Jensen Shannon Divergence 
+(JSD) 
+Result: Stability Score[0,1] Paper 3 Methodology 
+
+Paper 3 Conclusion 
+ 
+● Results show that even when pass@k is high, stability can still be low. 
+● JSD scores are generally high, meaning overall structure is similar. 
+● But SCE scores are lower, showing that token-level and fine-grained differences are common. 
+● This reveals instability that pass@k and BLEU miss. 
+
+Paper 4: Motivation and Problem 
+Main idea 
+● LLM answers change a lot when prompts are worded differently 
+● Current evaluations hide this problem 
+What the paper does 
+● Studies prompt sensitivity 
+● Looks at same question, different prompts 
+● Proposes a new metric: PromptSensiScore (PSS) 
+ProSA: Assessing and Understanding the Prompt Sensitivity of LLMs 
+
+
+Paper 4 Metrics and results 
+Key idea: Instance-level evaluation 
+● Not dataset averages 
+● Look at each question individually 
+PromptSensiScore (PSS) 
+● Compare model answers across multiple prompt versions 
+● High PSS = unstable model 
+● Low PSS = robust model 
+Main ﬁndings 
+● Larger models are usually more stable 
+● Math and reasoning tasks are very sensitive 
+● Adding few-shot examples helps a lot 
+
+
+Paper 4: Explanation 
+Why prompt sensitivity happens 
+● It’s linked to model conﬁdence 
+● Low conﬁdence →  answers ﬂip easily 
+Why this matters 
+● Benchmarks may overestimate model quality 
+● Users may get unreliable answers 
+● Evaluation should include prompt robustness 
+T akeaway 
+● Prompt sensitivity is real 
+● It’s measurable 
+● It should be part of LLM evaluation 
+
+
+Paper 5: Motivation and Problem 
+Benchmarks and Metrics for Evaluations of Code Generation: A Critical Review 
+LLMs in Code Generations: 
+● Programming tasks categorized into D2C 
+(Description to Code), C2D (Code to 
+Description), and C2C (Code to Code). Code 
+generation falls into D2C 
+● General purpose LLMs (ChatGPT) performs 
+“better” in the benchmark, which conﬂicts 
+with our assumptions 
+● HumanEval scores increased dramatically 
+(2.97% to 94%) in one year . This signal 
+potential problem in the accuracy of these 
+benchmarks 
+● Model size and benchmark scores vary wildly. 
+This is questionable comparability 
+● Benchmarks may not reﬂect real  code 
+usability or signiﬁcance of differences 
+
+
+Paper 5 - Methodology 
+How current benchmark work: 
+● Data is sourced from code 
+repositories, online forums, 
+coding challenge sites, and 
+textbooks. 
+● T asks include a 
+natural-language description 
+and optional context code 
+● Context code deﬁne hint for the 
+model and #test cases deﬁne 
+evaluation rigor 
+● pass@k  metric to estimate the 
+probability of generating at 
+least one correct solution in k 
+trials 
+
+
+Paper 5 - Conclusion 
+ Current benchmark inadequacy: 
+● Model rankings change when testing 
+rigor increases 
+● Benchmark results are highly 
+sensitive to dataset design and 
+sourcing 
+● The standard pass@k metric fails to 
+reﬂect real-world usability, most don’t 
+re-run multiple times to ﬁnd one 
+solution 
+● The #attemptk metric better reﬂects 
+productivity and whether code is a 
+"useful starting point 
+
+
+T akeaway 
+Drift Exists  (Atil et al.) 
+Prompts Drive It  (Errica et al.) 
+We Can Measure It (Song et al.) 
+Phrasing can change result 
+New metrics is required (Paul et al.)  T o transition LLms from 
+experiments to production 
+components, we must treat 
+‘Stability’ as a ﬁrst-class 
+metric alongside ‘ Accuracy’ .
+
+End of slides. 
+
+Our Experimental Design 
+ Models (tentative) T asks Datasets 
+1
+2
+3GPT –4 (Baseline) 
+Llama-3 
+CodeLlama Code Generation 
+Summarization 
+Bug Detection 
+T est Generation HumanEval 
+CodeSearchNet 
+Timeline 
+Jan-Feb: Infrastructure 
+& Prompt Engineering Feb: Data Collection 
+(800+ queries) Feb-Mar: Analysis & 
+Final Report 
