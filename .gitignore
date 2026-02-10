@@ -5,3 +5,7 @@ metrics/*.csv
 figures/
 __pycache__/
 .venv/
+
+cudacheck.py
+path_walker.py
+docs/history
