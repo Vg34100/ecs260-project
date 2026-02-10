@@ -4,3 +4,4 @@ runs/
 metrics/*.csv
 figures/
 __pycache__/
+.venv/
