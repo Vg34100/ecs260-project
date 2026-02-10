@@ -16,18 +16,20 @@ def dummy_complete(prompt: str) -> str:
     return "\n    pass\n"
 
 
-def load_transformers(model_path: str, device: str):
+def load_transformers(model_path: str, device: str, offline: bool):
     try:
         from transformers import AutoModelForCausalLM, AutoTokenizer
         import torch
     except Exception as e:
         raise RuntimeError("transformers/torch not available") from e
 
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_path, local_files_only=offline)
     if device == "cuda":
-        model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.float16)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path, torch_dtype=torch.float16, local_files_only=offline
+        )
     else:
-        model = AutoModelForCausalLM.from_pretrained(model_path)
+        model = AutoModelForCausalLM.from_pretrained(model_path, local_files_only=offline)
     model.to(device)
     model.eval()
     return tokenizer, model
@@ -92,7 +94,7 @@ def main() -> None:
                 device = "cuda" if torch.cuda.is_available() else "cpu"
             except Exception:
                 device = "cpu"
-        tokenizer, model = load_transformers(args.model_path, device)
+        tokenizer, model = load_transformers(args.model_path, device, args.offline)
         print(f"Using device: {device}")
 
     stop_strings = ["\n\ndef ", "\n\nclass ", "\n\n\n"]
