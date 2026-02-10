@@ -33,7 +33,9 @@ def load_transformers(model_path: str, device: str):
     return tokenizer, model
 
 
-def generate_with_transformers(tokenizer, model, prompt: str, max_new_tokens: int, device: str) -> str:
+def generate_with_transformers(
+    tokenizer, model, prompt: str, max_new_tokens: int, device: str, stop_strings
+) -> str:
     import torch
 
     inputs = tokenizer(prompt, return_tensors="pt")
@@ -44,9 +46,16 @@ def generate_with_transformers(tokenizer, model, prompt: str, max_new_tokens: in
             max_new_tokens=max_new_tokens,
             do_sample=False,
             temperature=0.0,
+            pad_token_id=tokenizer.eos_token_id,
+            eos_token_id=tokenizer.eos_token_id,
         )
     full_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    return full_text[len(prompt) :]
+    completion = full_text[len(prompt) :]
+    for s in stop_strings:
+        idx = completion.find(s)
+        if idx != -1:
+            completion = completion[:idx]
+    return completion
 
 
 def main() -> None:
@@ -57,7 +66,7 @@ def main() -> None:
     parser.add_argument("--model-path", default=None)
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--repeats", type=int, default=1)
-    parser.add_argument("--max-new-tokens", type=int, default=256)
+    parser.add_argument("--max-new-tokens", type=int, default=64)
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
     parser.add_argument("--offline", action="store_true", help="use cached models only")
     parser.add_argument("--out", default="runs/codegen.jsonl")
@@ -86,18 +95,21 @@ def main() -> None:
         tokenizer, model = load_transformers(args.model_path, device)
         print(f"Using device: {device}")
 
+    stop_strings = ["\n\ndef ", "\n\nclass ", "\n\n\n"]
+
     with out_path.open("w", encoding="utf-8") as out:
-        for item in load_humaneval(args.dataset, limit=args.limit):
+        for idx, item in enumerate(load_humaneval(args.dataset, limit=args.limit), start=1):
             task_id = item.get("task_id")
             base_prompt = item.get("prompt", "")
             full_prompt = prompt_prefix + base_prompt
 
             for r in range(args.repeats):
+                print(f"Task {idx}/{args.limit} {task_id} repeat {r+1}/{args.repeats}...")
                 if args.model == "dummy":
                     completion = dummy_complete(full_prompt)
                 else:
                     completion = generate_with_transformers(
-                        tokenizer, model, full_prompt, args.max_new_tokens, device
+                        tokenizer, model, full_prompt, args.max_new_tokens, device, stop_strings
                     )
 
                 record = {
