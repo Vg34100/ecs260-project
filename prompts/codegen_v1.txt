@@ -1,0 +1,3 @@
+# Task: Complete the Python function below.
+# Use the provided function signature.
+# Return only valid Python code.

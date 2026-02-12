@@ -1,0 +1,3 @@
+# Problem: Implement the Python function below.
+# Follow the given function signature exactly.
+# Output only the final Python implementation.

@@ -1,0 +1,3 @@
+# Write a correct implementation of the function below.
+# Use the given function definition.
+# Your response must contain only Python code.

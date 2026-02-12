@@ -1,0 +1,4 @@
+# Complete the following Python function.
+# Respect the provided signature.
+# Do not include explanations or extra text.
+# Return code only.
