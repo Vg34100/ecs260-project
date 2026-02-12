@@ -1,0 +1,3 @@
+# Task: Complete the Python function below.
+# Return only the function implementation.
+
