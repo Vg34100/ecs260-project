@@ -63,7 +63,8 @@ def generate_with_transformers(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run code generation on HumanEval")
     parser.add_argument("--dataset", default="data/HumanEval.jsonl")
-    parser.add_argument("--prompt", default="prompts/codegen_base.txt")
+    parser.add_argument("--prompt", default=None, help="single prompt file")
+    parser.add_argument("--prompt-dir", default="prompts", help="directory of prompt files")    
     parser.add_argument("--model", default="dummy", choices=["dummy", "transformers"])
     parser.add_argument("--model-path", default=None)
     parser.add_argument("--limit", type=int, default=20)
@@ -78,7 +79,22 @@ def main() -> None:
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
         os.environ["HF_HUB_OFFLINE"] = "1"
 
-    prompt_prefix = load_prompt(args.prompt)
+    prompt_files = []
+
+    if args.prompt:
+        prompt_files = [args.prompt]
+    else:
+        # load all .txt files in prompt directory
+        prompt_files = sorted(
+            str(p) for p in Path(args.prompt_dir).glob("*.txt")
+        )
+
+    if not prompt_files:
+        raise SystemExit("No prompt files found.")
+
+    print("Using prompt files:")
+    for pf in prompt_files:
+        print(" -", pf)
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -100,32 +116,37 @@ def main() -> None:
     stop_strings = ["\n\ndef ", "\n\nclass ", "\n\n\n"]
 
     with out_path.open("w", encoding="utf-8") as out:
-        for idx, item in enumerate(load_humaneval(args.dataset, limit=args.limit), start=1):
-            task_id = item.get("task_id")
-            base_prompt = item.get("prompt", "")
-            full_prompt = prompt_prefix + base_prompt
+        for prompt_path in prompt_files:
+            prompt_prefix = load_prompt(prompt_path)
 
-            for r in range(args.repeats):
-                print(f"Task {idx}/{args.limit} {task_id} repeat {r+1}/{args.repeats}...")
-                if args.model == "dummy":
-                    completion = dummy_complete(full_prompt)
-                else:
-                    completion = generate_with_transformers(
-                        tokenizer, model, full_prompt, args.max_new_tokens, device, stop_strings
-                    )
+            for idx, item in enumerate(load_humaneval(args.dataset, limit=args.limit), start=1):
+                task_id = item.get("task_id")
+                base_prompt = item.get("prompt", "")
+                full_prompt = prompt_prefix + base_prompt
 
-                record = {
-                    "task_id": task_id,
-                    "prompt": full_prompt,
-                    "completion": completion,
-                    "model": args.model,
-                    "model_path": args.model_path,
-                    "repeat": r,
-                    "timestamp": time.time(),
-                }
-                out.write(json.dumps(record) + "\n")
-                out.flush()
+                for r in range(args.repeats):
+                    print(f"[{Path(prompt_path).name}] Task {idx}/{args.limit} {task_id} repeat {r+1}/{args.repeats}")
 
+                    if args.model == "dummy":
+                        completion = dummy_complete(full_prompt)
+                    else:
+                        completion = generate_with_transformers(
+                            tokenizer, model, full_prompt, args.max_new_tokens, device, stop_strings
+                        )
+
+                    record = {
+                        "task_id": task_id,
+                        "prompt_file": Path(prompt_path).name,
+                        "prompt": full_prompt,
+                        "completion": completion,
+                        "model": args.model,
+                        "model_path": args.model_path,
+                        "repeat": r,
+                        "timestamp": time.time(),
+                    }
+
+                    out.write(json.dumps(record) + "\n")
+                    out.flush()
 
 if __name__ == "__main__":
     main()
