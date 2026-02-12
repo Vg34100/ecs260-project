@@ -1,0 +1,3 @@
+# Programming Task: Finish the function shown below.
+# Do not modify the function name or parameters.
+# Provide only executable Python code.
