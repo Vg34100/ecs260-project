@@ -1,4 +1,5 @@
 import argparse
+import csv
 import json
 import multiprocessing as mp
 from pathlib import Path
@@ -54,8 +55,21 @@ def main() -> None:
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with out_path.open("w", encoding="utf-8") as out:
-        out.write("task_id,repeat,passed,error\n")
+    with out_path.open("w", encoding="utf-8", newline="") as out_f:
+        writer = csv.DictWriter(
+            out_f,
+            fieldnames=[
+                "task_id",
+                "repeat",
+                "passed",
+                "dataset_source",
+                "perturbation_name",
+                "prompt_file",
+                "model",
+                "error",
+            ],
+        )
+        writer.writeheader()
         with Path(args.runs).open("r", encoding="utf-8") as f:
             for line in f:
                 rec = json.loads(line)
@@ -76,7 +90,18 @@ def main() -> None:
                 else:
                     failures += 1
 
-                out.write(f"{task_id},{rec['repeat']},{int(ok)},{err}\n")
+                writer.writerow(
+                    {
+                        "task_id": task_id,
+                        "repeat": rec["repeat"],
+                        "passed": int(ok),
+                        "dataset_source": source,
+                        "perturbation_name": rec.get("perturbation_name", ""),
+                        "prompt_file": rec.get("prompt_file", ""),
+                        "model": rec.get("model", ""),
+                        "error": err,
+                    }
+                )
 
     pass_rate = (passed / total) if total else 0.0
     print(f"Total: {total} Passed: {passed} Failed: {failures} Pass rate: {pass_rate:.3f}")
