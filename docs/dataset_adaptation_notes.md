@@ -21,6 +21,17 @@ and makes perturbation-level analysis straightforward without extra joins.
 2. Add a consistency aggregation grouped by `perturbation_name`.
 3. Add language-aware evaluators for JS/Java/C++/Go.
 
+## Utility Added
+Added `scripts/download_instruct_model.py` to download an instruct model locally.
+
+Example:
+
+```bash
+python3 scripts/download_instruct_model.py \
+  --repo-id Qwen/Qwen2.5-Coder-1.5B-Instruct \
+  --out models/qwen2.5-coder-1.5b-instruct
+```
+
 ## Example usage after current step
 You can now point existing scripts to a dataset directory or glob:
 

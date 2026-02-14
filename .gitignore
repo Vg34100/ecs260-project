@@ -1,11 +1,53 @@
+# Environment and secrets
 .env
+.env.*
+!.env.example
+
+# Models (large files)
+models/
+*.bin
+*.safetensors
+*.gguf
+
+# Data and outputs
 data/*.jsonl
 runs/
 metrics/*.csv
 figures/
-__pycache__/
-.venv/
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+ENV/
+env/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Logs
+*.log
+
+# Temporary files
 cudacheck.py
 path_walker.py
 docs/history
