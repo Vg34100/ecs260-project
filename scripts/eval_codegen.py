@@ -2,7 +2,7 @@ import argparse
 import json
 import multiprocessing as mp
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, Tuple
 
 from humaneval import load_humaneval
 
@@ -42,7 +42,11 @@ def main() -> None:
     parser.add_argument("--out", default="metrics/summary.csv")
     args = parser.parse_args()
 
-    dataset = {item["task_id"]: item for item in load_humaneval(args.dataset)}
+    dataset_by_source_and_task: Dict[Tuple[str, str], Dict[str, object]] = {}
+    for item in load_humaneval(args.dataset):
+        task_id = str(item["task_id"])
+        source = str(item.get("dataset_source", ""))
+        dataset_by_source_and_task[(source, task_id)] = item
     total = 0
     passed = 0
     failures = 0
@@ -56,7 +60,8 @@ def main() -> None:
             for line in f:
                 rec = json.loads(line)
                 task_id = rec["task_id"]
-                item = dataset.get(task_id)
+                source = str(rec.get("dataset_source", ""))
+                item = dataset_by_source_and_task.get((source, task_id))
                 if not item:
                     continue
 

@@ -60,6 +60,10 @@ def generate_with_transformers(
     return completion
 
 
+def infer_perturbation_name(dataset_source: str) -> str:
+    return Path(dataset_source).stem if dataset_source else "unknown"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run code generation on HumanEval")
     parser.add_argument("--dataset", default="data/HumanEval.jsonl")
@@ -137,6 +141,8 @@ def main() -> None:
                     record = {
                         "task_id": task_id,
                         "prompt_file": Path(prompt_path).name,
+                        "dataset_source": item.get("dataset_source", args.dataset),
+                        "perturbation_name": infer_perturbation_name(item.get("dataset_source", args.dataset)),
                         "prompt": full_prompt,
                         "completion": completion,
                         "model": args.model,

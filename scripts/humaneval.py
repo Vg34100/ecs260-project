@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Iterable, Dict, Any, Optional, List
+from typing import Any, Dict, Iterable, List, Optional
 
 
 def _resolve_dataset_files(path: str) -> List[Path]:
@@ -14,8 +14,13 @@ def _resolve_dataset_files(path: str) -> List[Path]:
     return [f for f in files if f.is_file() and f.suffix == ".jsonl"]
 
 
-def load_humaneval(path: str, limit: Optional[int] = None) -> Iterable[Dict[str, Any]]:
-    """Load HumanEval-style JSONL from file, directory, or glob pattern."""
+def load_codegen_dataset(path: str, limit: Optional[int] = None) -> Iterable[Dict[str, Any]]:
+    """Load codegen JSONL data from file, directory, or glob pattern.
+
+    This is dataset-agnostic and works for multi-language folders
+    (e.g., humanevalpy/humanevaljs/humanevalcpp/humanevaljava/humanevalgo)
+    as long as rows contain the expected task fields used by the pipeline.
+    """
     files = _resolve_dataset_files(path)
     if not files:
         raise FileNotFoundError(f"Dataset not found: {path}")
@@ -28,7 +33,13 @@ def load_humaneval(path: str, limit: Optional[int] = None) -> Iterable[Dict[str,
                 if not line:
                     continue
                 item = json.loads(line)
+                item["dataset_source"] = str(p)
                 yield item
                 count += 1
                 if limit is not None and count >= limit:
                     return
+
+
+def load_humaneval(path: str, limit: Optional[int] = None) -> Iterable[Dict[str, Any]]:
+    """Backward-compatible alias for older imports."""
+    yield from load_codegen_dataset(path, limit=limit)
