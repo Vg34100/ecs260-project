@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 from humaneval import load_humaneval
-
+from validaity import check_python_syntax
 
 def load_prompt(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
@@ -59,6 +59,27 @@ def generate_with_transformers(
             completion = completion[:idx]
     return completion
 
+def extract_code_for_parse(text: str) -> str:
+    """
+    Extracts code from a completion. If fenced code exists, use the first fenced block.
+    Otherwise, use raw text.
+    """
+    if "```" not in text:
+        return text.strip()
+
+    parts = text.split("```")
+    # parts: [before, fence_lang_and_code, after, ...]
+    # We take the first fenced block content.
+    if len(parts) >= 3:
+        fenced = parts[1]
+        # If it starts with 'python\n', drop the first line.
+        lines = fenced.splitlines()
+        if lines and lines[0].strip().lower().startswith("python"):
+            lines = lines[1:]
+        return "\n".join(lines).strip()
+
+    return text.strip()
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run code generation on HumanEval")
@@ -73,7 +94,13 @@ def main() -> None:
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
     parser.add_argument("--offline", action="store_true", help="use cached models only")
     parser.add_argument("--out", default="runs/codegen.jsonl")
+    parser.add_argument("--invalid-log",default="runs/invalid_outputs.jsonl",help="where to append invalid (syntax) outputs as jsonl")
     args = parser.parse_args()
+    
+    
+
+    invalid_log_path = Path(args.invalid_log)
+    invalid_log_path.parent.mkdir(parents=True, exist_ok=True)
 
     if args.offline:
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
@@ -115,6 +142,8 @@ def main() -> None:
 
     stop_strings = ["\n\ndef ", "\n\nclass ", "\n\n\n"]
 
+
+
     with out_path.open("w", encoding="utf-8") as out:
         for prompt_path in prompt_files:
             prompt_prefix = load_prompt(prompt_path)
@@ -133,6 +162,8 @@ def main() -> None:
                         completion = generate_with_transformers(
                             tokenizer, model, full_prompt, args.max_new_tokens, device, stop_strings
                         )
+                    code = extract_code_for_parse(completion)
+                    valid_syntax, syntax_error = check_python_syntax(code)
 
                     record = {
                         "task_id": task_id,
@@ -145,8 +176,14 @@ def main() -> None:
                         "timestamp": time.time(),
                     }
 
-                    out.write(json.dumps(record) + "\n")
-                    out.flush()
+                    #out.write(json.dumps(record) + "\n")
+                    #out.flush()
+                    out.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+                    # write invalid log (extra)
+                    if not valid_syntax:
+                        with invalid_log_path.open("a", encoding="utf-8") as f:
+                            f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 if __name__ == "__main__":
     main()
