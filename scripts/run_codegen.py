@@ -199,9 +199,9 @@ def main() -> None:
                         completion = generate_with_transformers(
                             tokenizer, model, full_prompt, args.max_new_tokens, device, stop_strings
                         )
-                    completion = cleanup_completion(completion)
                     code = extract_code_for_parse(completion)
                     valid_syntax, syntax_error = check_python_syntax(code)
+                    completion = cleanup_completion(completion)
 
                     record = {
                         "task_id": task_id,
