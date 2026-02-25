@@ -93,6 +93,7 @@ def cleanup_completion(completion: str) -> str:
         completion = fence_match.group(1)
     completion = completion.replace("```python", "").replace("```", "")
 
+    # Not entirely necessary, but if there are common trailing patterns that indicate the model is starting to write test cases or explanations, we can cut those off to keep just the function body.
     # Drop common trailing junk patterns beyond the target function body.
     trailing_markers = [
         "\n# Test cases",
