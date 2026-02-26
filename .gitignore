@@ -9,3 +9,5 @@ __pycache__/
 cudacheck.py
 path_walker.py
 docs/history
+docs/papers
+docs/reference
