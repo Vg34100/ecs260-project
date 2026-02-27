@@ -51,3 +51,5 @@ Thumbs.db
 cudacheck.py
 path_walker.py
 docs/history
+docs/papers
+docs/reference
