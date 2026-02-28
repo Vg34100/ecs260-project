@@ -29,3 +29,8 @@ Notes:
 - CodeSearchNet code summarization (Llama3.2 3B, 20 tasks x 3 repeats)
   - Embedding similarity to reference docstrings: mean ~0.66 (min 0.21, max 0.91)
   - Interpretation: the model often captures core intent in code summaries, but outputs vary across repeats. This suggests higher semantic alignment than the non-code summarization task, yet still shows measurable drift, which supports RQ2 and the stability analysis.
+
+- CodeXGLUE defect detection (balanced subset, 100 tasks x 3 repeats)
+  - Accuracy: 0.52 (156/300), Unknown: 1
+  - Targets are balanced (150 clean, 150 buggy), but the model heavily favors 'buggy' predictions.
+  - Interpretation: the task is harder for this model and prompt format; results are near chance with a strong class bias, which is still useful for stability analysis but weak for correctness. We should consider prompt tuning or a smaller classification-focused model if accuracy matters.
