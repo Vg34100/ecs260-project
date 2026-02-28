@@ -43,3 +43,7 @@ Notes:
   - Llama3.2:3b shows higher stability and accuracy than Mistral:7b on this setup.
   - Despite Mistral being larger, it is less stable here, which suggests parameter count alone does not guarantee stability.
   - Differences may come from architecture, training data, or alignment, not just size.
+
+- Task-feature tables (HumanEval_py, Llama3.2:3b and Mistral:7b)
+  - Feature logs include prompt length, completion length, syntax validity, and pass/fail per run.
+  - Interpretation: this enables RQ4 analysis by correlating stability and correctness with prompt/completion length and syntax validity. Initial inspection shows model-dependent completion length differences (e.g., Llama3.2 outputs longer code than Mistral on the same prompt).
