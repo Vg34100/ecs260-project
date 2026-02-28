@@ -178,13 +178,14 @@ def main() -> None:
     if args.with_semantic:
         semantic_model = load_codebert_model(device=args.semantic_device)
 
-    grouped: Dict[Tuple[str, str, str, str, str], List[Record]] = defaultdict(list)
+    grouped: Dict[Tuple[str, str, str, str, str, str], List[Record]] = defaultdict(list)
     for rec in load_runs(args.runs):
         key = (
             str(rec.get("dataset_source", "")),
             str(rec.get("task_id", "")),
             str(rec.get("prompt_file", "")),
             str(rec.get("model", "")),
+            str(rec.get("model_name", "")),
             str(rec.get("perturbation_name", "")),
         )
         grouped[key].append(rec)
@@ -198,6 +199,7 @@ def main() -> None:
             "task_id",
             "prompt_file",
             "model",
+            "model_name",
             "perturbation_name",
             "repeats",
             "exact_match_rate",
@@ -211,7 +213,7 @@ def main() -> None:
         writer.writeheader()
 
         for key, records in grouped.items():
-            dataset_source, task_id, prompt_file, model, perturbation_name = key
+            dataset_source, task_id, prompt_file, model, model_name, perturbation_name = key
             completions = [str(r.get("completion", "")) for r in records]
             repeats = len(completions)
             passed = []
@@ -230,6 +232,7 @@ def main() -> None:
                 "task_id": task_id,
                 "prompt_file": prompt_file,
                 "model": model,
+                "model_name": model_name,
                 "perturbation_name": perturbation_name,
                 "repeats": repeats,
                 "exact_match_rate": f"{exact_match_rate(completions):.3f}",

@@ -238,6 +238,12 @@ def main() -> None:
                     valid_syntax, syntax_error = check_python_syntax(code)
                     completion = cleanup_completion(completion)
 
+                    model_name = ""
+                    if args.model == "transformers":
+                        model_name = args.model_path or ""
+                    elif args.model == "ollama":
+                        model_name = args.ollama_model or ""
+
                     record = {
                         "task_id": task_id,
                         "prompt_file": Path(prompt_path).name,
@@ -246,6 +252,7 @@ def main() -> None:
                         "prompt": full_prompt,
                         "completion": completion,
                         "model": args.model,
+                        "model_name": model_name,
                         "model_path": args.model_path,
                         "repeat": r,
                         "timestamp": time.time(),

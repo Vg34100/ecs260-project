@@ -38,3 +38,8 @@ Notes:
 - Paraphrase sensitivity summary (HumanEval_py, Llama3.2 3B, 10 tasks, 6 prompt variants)
   - mean_exact_match ~0.44, mean_ast_jaccard ~0.90, mean_behavior_consistency ~0.95, mean_pass_rate ~0.75
   - Interpretation: paraphrasing causes noticeable surface-form changes, but code structure and correctness remain mostly stable. This supports RQ2 by showing sensitivity in outputs without large behavioral instability.
+
+- Model comparison (HumanEval_py, deterministic runs, 10 tasks x 3 repeats x 6 prompts)
+  - Llama3.2:3b shows higher stability and accuracy than Mistral:7b on this setup.
+  - Despite Mistral being larger, it is less stable here, which suggests parameter count alone does not guarantee stability.
+  - Differences may come from architecture, training data, or alignment, not just size.
