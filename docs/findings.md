@@ -47,3 +47,8 @@ Notes:
 - Task-feature tables (HumanEval_py, Llama3.2:3b and Mistral:7b)
   - Feature logs include prompt length, completion length, syntax validity, and pass/fail per run.
   - Interpretation: this enables RQ4 analysis by correlating stability and correctness with prompt/completion length and syntax validity. Initial inspection shows model-dependent completion length differences (e.g., Llama3.2 outputs longer code than Mistral on the same prompt).
+
+- MBPP test generation (20 tasks x 3 repeats)
+  - Llama3.2:3b pass rate: 0.383 (23/60). Frequent invalid tests or missing asserts.
+  - Mistral:7b pass rate: 0.633 (38/60). Fewer invalid tests; more usable assertions.
+  - Interpretation: test-generation quality is model-dependent; Mistral produces more executable tests under the same prompt, suggesting better reliability for this task.
