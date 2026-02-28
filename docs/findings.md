@@ -34,3 +34,7 @@ Notes:
   - Accuracy: 0.52 (156/300), Unknown: 1
   - Targets are balanced (150 clean, 150 buggy), but the model heavily favors 'buggy' predictions.
   - Interpretation: the task is harder for this model and prompt format; results are near chance with a strong class bias, which is still useful for stability analysis but weak for correctness. We should consider prompt tuning or a smaller classification-focused model if accuracy matters.
+
+- Paraphrase sensitivity summary (HumanEval_py, Llama3.2 3B, 10 tasks, 6 prompt variants)
+  - mean_exact_match ~0.44, mean_ast_jaccard ~0.90, mean_behavior_consistency ~0.95, mean_pass_rate ~0.75
+  - Interpretation: paraphrasing causes noticeable surface-form changes, but code structure and correctness remain mostly stable. This supports RQ2 by showing sensitivity in outputs without large behavioral instability.
