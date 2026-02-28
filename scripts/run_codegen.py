@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -81,6 +82,42 @@ def extract_code_for_parse(text: str) -> str:
     return text.strip()
 
 
+def cleanup_completion(completion: str) -> str:
+    # Remove FIM placeholder tokens that can leak into final text.
+    completion = re.sub(r"<\|fim_[^|]*\|>", "", completion)
+    completion = completion.replace("<|cursor|>", "")
+
+    # If the model wrapped code in markdown fences, keep only fenced body.
+    fence_match = re.search(r"```(?:python)?\s*(.*?)```", completion, flags=re.DOTALL)
+    if fence_match:
+        completion = fence_match.group(1)
+    completion = completion.replace("```python", "").replace("```", "")
+
+    # Not entirely necessary, but if there are common trailing patterns that indicate the model is starting to write test cases or explanations, we can cut those off to keep just the function body.
+    # Drop common trailing junk patterns beyond the target function body.
+    trailing_markers = [
+        "\n# Test cases",
+        "\n# Tests",
+        "\nassert ",
+        "\nprint(",
+        "\nif __name__ ==",
+        "\nimport unittest",
+        "\nclass Test",
+        "\n**Explanation",
+        "\nExplanation:",
+    ]
+    for marker in trailing_markers:
+        idx = completion.find(marker)
+        if idx != -1:
+            completion = completion[:idx]
+
+    return completion.rstrip()
+
+
+def infer_perturbation_name(dataset_source: str) -> str:
+    return Path(dataset_source).stem if dataset_source else "unknown"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run code generation on HumanEval")
     parser.add_argument("--dataset", default="data/HumanEval.jsonl")
@@ -90,7 +127,7 @@ def main() -> None:
     parser.add_argument("--model-path", default=None)
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--repeats", type=int, default=1)
-    parser.add_argument("--max-new-tokens", type=int, default=64)
+    parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
     parser.add_argument("--offline", action="store_true", help="use cached models only")
     parser.add_argument("--out", default="runs/codegen.jsonl")
@@ -151,7 +188,7 @@ def main() -> None:
             for idx, item in enumerate(load_humaneval(args.dataset, limit=args.limit), start=1):
                 task_id = item.get("task_id")
                 base_prompt = item.get("prompt", "")
-                full_prompt = prompt_prefix + base_prompt
+                full_prompt = f"{prompt_prefix.rstrip()}\n\n{base_prompt.lstrip()}"
 
                 for r in range(args.repeats):
                     print(f"[{Path(prompt_path).name}] Task {idx}/{args.limit} {task_id} repeat {r+1}/{args.repeats}")
@@ -164,10 +201,13 @@ def main() -> None:
                         )
                     code = extract_code_for_parse(completion)
                     valid_syntax, syntax_error = check_python_syntax(code)
+                    completion = cleanup_completion(completion)
 
                     record = {
                         "task_id": task_id,
                         "prompt_file": Path(prompt_path).name,
+                        "dataset_source": item.get("dataset_source", args.dataset),
+                        "perturbation_name": infer_perturbation_name(item.get("dataset_source", args.dataset)),
                         "prompt": full_prompt,
                         "completion": completion,
                         "model": args.model,
