@@ -21,3 +21,7 @@
 Notes:
 - Llama3.2 3B is the best current candidate for stability analysis with observable drift.
 - Qwen3 8B appears unsuitable for HumanEval_py under current prompts/settings.
+
+- XSum summarization (Llama3.2 3B, 20 tasks x 3 repeats)
+  - Embedding similarity to reference summaries: mean ~0.52 (min 0.21, max 0.81)
+  - Interpretation: summaries are often semantically related but far from identical, which is expected for abstractive summarization. The spread shows repeat-level variability in meaning even under deterministic settings, making it a good non-code task for drift analysis.
