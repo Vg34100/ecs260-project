@@ -52,3 +52,7 @@ Notes:
   - Llama3.2:3b pass rate: 0.383 (23/60). Frequent invalid tests or missing asserts.
   - Mistral:7b pass rate: 0.633 (38/60). Fewer invalid tests; more usable assertions.
   - Interpretation: test-generation quality is model-dependent; Mistral produces more executable tests under the same prompt, suggesting better reliability for this task.
+
+- Task-feature correlation analysis (Llama3.2:3b + Mistral:7b)
+  - prompt_len_vs_pass r = -0.294; completion_len_vs_pass r = -0.174; syntax_valid_vs_pass r = 0.261.
+  - Interpretation: longer prompts and longer completions are weakly associated with lower pass rates in this small sample, while syntax validity is positively associated with correctness. These are modest effects (not causal), but they support RQ4 by identifying prompt/completion length and syntax validity as measurable factors linked to performance.
