@@ -108,3 +108,77 @@ Notes:
   - Commit: `feat: add task feature analysis`
   - Commands:
     - `python3 scripts/metrics/analyze_task_features.py --inputs metrics/task_features_llama32_3b.csv metrics/task_features_mistral_7b.csv --out metrics/task_feature_analysis.csv`
+
+- Visualization outputs
+  - Behavior vs Structure scatter: shows how structural similarity (AST) relates to behavioral consistency. Each point is a task x prompt group. Points closer to (1,1) are more stable in both structure and behavior.
+  - Stability Distributions (violin + jitter): shows the distribution of stability metrics across tasks for each model. The width indicates density; the dots are individual task values.
+  - Task Feature Correlations: bar plot of Pearson r values, showing how prompt length, completion length, and syntax validity relate to correctness.
+  - MBPP Test Generation Compare: bar chart of pass rates for generated tests across models.
+  - Stability Atlas (HTML): heatmap of AST similarity by task and prompt file for each model, showing which tasks are sensitive to paraphrases.
+  - Commit: `feat: add visualization suite`
+
+- Full suite runner
+  - Script: `scripts/run_full_suite.py`
+  - Description: runs codegen, evals, stability, paraphrase sensitivity, model comparison, feature analysis, optional extra tasks, and plots in one pass.
+  - Commit: `feat: add full suite runner`
+
+## 2026-03-01 (Full Suite, limit=30, repeats=10)
+- HumanEval_py codegen (Llama3.2:3b)
+  - Pass rate: 0.745 (1341/1800)
+  - exact_match_rate mean: 0.318
+  - ast_jaccard_mean mean: 0.893
+  - ast_tree_edit_mean mean: 0.776
+  - behavior_consistency mean: 0.901
+  - Interpretation: Llama shows moderate drift in exact outputs but high structural and behavioral stability at larger scale.
+
+- HumanEval_py codegen (Mistral:7b)
+  - Pass rate: 0.552 (993/1800)
+  - exact_match_rate mean: 0.259
+  - ast_jaccard_mean mean: 0.833
+  - ast_tree_edit_mean mean: 0.675
+  - behavior_consistency mean: 0.881
+  - Interpretation: Mistral is less accurate and less stable than Llama on structure and behavior in this setup.
+
+- Paraphrase sensitivity summary (Llama3.2:3b, 30 tasks, 6 prompts)
+  - mean_exact_match: 0.318
+  - mean_ast_jaccard: 0.893
+  - mean_behavior_consistency: 0.901
+  - mean_pass_rate: 0.745
+  - Interpretation: paraphrasing changes surface form often, but structure and behavior remain mostly stable at scale.
+
+- Task-feature correlation analysis (combined)
+  - prompt_len_vs_pass r = -0.421; completion_len_vs_pass r = -0.212; syntax_valid_vs_pass r = 0.273.
+  - Interpretation: longer prompts and completions correlate with lower pass rates; syntax validity is positively associated with correctness. Effects are modest but consistent at larger scale.
+
+- XSum summarization (Llama3.2:3b, 200 runs)
+  - Embedding similarity mean: 0.526 (min 0.182, max 0.826)
+  - Interpretation: summaries are semantically related to references with noticeable variance across repeats.
+
+- CodeSearchNet summarization (Llama3.2:3b, 200 runs)
+  - Embedding similarity mean: 0.658 (min 0.152, max 0.883)
+  - Interpretation: higher alignment than XSum, suggesting code summaries are more constrained but still variable.
+
+- Bug detection (balanced, Llama3.2:3b, 300 runs)
+  - Accuracy: 0.64 (192/300)
+  - Interpretation: improved over small runs, but still shows bias and modest correctness for classification.
+
+- MBPP test generation (Llama3.2:3b, 200 runs)
+  - Pass rate: 0.365 (73/200)
+  - Interpretation: test generation remains challenging; many generated tests are invalid or non-executable.
+
+- MBPP test generation (Mistral:7b, 60 runs, earlier run)
+  - Pass rate: 0.633 (38/60)
+  - Interpretation: Mistral produces more executable tests than Llama on the smaller run.
+
+- Model comparison (aggregated, 30 tasks x 6 prompts)
+  - Llama3.2:3b: exact 0.318, AST 0.893, tree-edit 0.776, behavior 0.901, pass 0.745
+  - Mistral:7b: exact 0.259, AST 0.833, tree-edit 0.675, behavior 0.881, pass 0.552
+  - Interpretation: Llama is more stable and accurate at scale; Mistral shows higher drift in structure and behavior.
+
+- Visualization interpretations (updated plots)
+  - Stability bins: compares the share of tasks in low/mid/high exact-match stability bins. Mistral has a larger low-stability share, Llama has higher mid/high share.
+  - MBPP test generation errors: shows pass vs invalid vs no-assert vs timeout, highlighting that Llama has more invalid outputs while Mistral passes more tests.
+  - Prompt-level stability heatmap: averages AST stability by prompt variant. Darker colors indicate lower stability; Mistral is generally darker, suggesting higher sensitivity to paraphrases.
+  - Stability atlas (AST heatmap): task-by-prompt map showing where drift concentrates; darker cells indicate sensitive tasks.
+  - Stability distributions (violin + jitter): shows distribution and density of stability metrics per model; Llama skews toward higher stability across metrics.
+  - Behavior vs structure scatter: points closer to (1,1) are stable; Mistral points show more spread toward lower AST/behavior values.

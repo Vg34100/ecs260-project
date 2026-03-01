@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import signal
 import re
 import textwrap
 from pathlib import Path
@@ -103,6 +104,12 @@ def main() -> None:
             code = f"{solution}\n\n{test_code}\n"
             local_env = {}
             try:
+                def _timeout_handler(signum, frame):
+                    raise TimeoutError("timeout")
+
+                signal.signal(signal.SIGALRM, _timeout_handler)
+                signal.alarm(1)
+
                 if not test_code:
                     raise RuntimeError("no asserts found")
                 exec(code, local_env)
@@ -117,6 +124,8 @@ def main() -> None:
                 invalid += 1
                 err = str(e).replace("\n", " ")
                 out.write(f"{task_id},{rec.get('repeat',0)},0,1,{err}\n")
+            finally:
+                signal.alarm(0)
 
     rate = passed / total if total else 0.0
     print(f"Total: {total} Passed: {passed} Invalid: {invalid} Pass rate: {rate:.3f}")
