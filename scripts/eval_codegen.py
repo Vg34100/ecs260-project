@@ -66,6 +66,7 @@ def main() -> None:
                 "perturbation_name",
                 "prompt_file",
                 "model",
+                "model_name",
                 "error",
             ],
         )
@@ -99,6 +100,7 @@ def main() -> None:
                         "perturbation_name": rec.get("perturbation_name", ""),
                         "prompt_file": rec.get("prompt_file", ""),
                         "model": rec.get("model", ""),
+                        "model_name": rec.get("model_name", ""),
                         "error": err,
                     }
                 )
