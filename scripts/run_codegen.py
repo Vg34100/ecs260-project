@@ -3,6 +3,7 @@ import json
 import os
 import re
 import time
+from urllib import request
 from pathlib import Path
 
 from humaneval import load_humaneval
@@ -59,6 +60,28 @@ def generate_with_transformers(
         if idx != -1:
             completion = completion[:idx]
     return completion
+
+
+def generate_with_ollama(model: str, prompt: str, url: str, max_new_tokens: int) -> str:
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        "options": {
+            "num_predict": max_new_tokens,
+        },
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = request.Request(
+        url.rstrip("/") + "/api/generate",
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with request.urlopen(req, timeout=600) as resp:
+        body = resp.read().decode("utf-8")
+    result = json.loads(body)
+    return result.get("response", "")
 
 def extract_code_for_parse(text: str) -> str:
     """
@@ -123,8 +146,10 @@ def main() -> None:
     parser.add_argument("--dataset", default="data/HumanEval.jsonl")
     parser.add_argument("--prompt", default=None, help="single prompt file")
     parser.add_argument("--prompt-dir", default="prompts", help="directory of prompt files")    
-    parser.add_argument("--model", default="dummy", choices=["dummy", "transformers"])
+    parser.add_argument("--model", default="dummy", choices=["dummy", "transformers", "ollama"])
     parser.add_argument("--model-path", default=None)
+    parser.add_argument("--ollama-url", default=os.getenv("OLLAMA_URL", "http://localhost:11434"))
+    parser.add_argument("--ollama-model", default=None)
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--repeats", type=int, default=1)
     parser.add_argument("--max-new-tokens", type=int, default=256)
@@ -176,6 +201,9 @@ def main() -> None:
                 device = "cpu"
         tokenizer, model = load_transformers(args.model_path, device, args.offline)
         print(f"Using device: {device}")
+    elif args.model == "ollama":
+        if not args.ollama_model:
+            raise SystemExit("--ollama-model is required for ollama")
 
     stop_strings = ["\n\ndef ", "\n\nclass ", "\n\n\n"]
 
@@ -195,13 +223,26 @@ def main() -> None:
 
                     if args.model == "dummy":
                         completion = dummy_complete(full_prompt)
-                    else:
+                    elif args.model == "transformers":
                         completion = generate_with_transformers(
                             tokenizer, model, full_prompt, args.max_new_tokens, device, stop_strings
+                        )
+                    else:
+                        completion = generate_with_ollama(
+                            args.ollama_model,
+                            full_prompt,
+                            args.ollama_url,
+                            args.max_new_tokens,
                         )
                     code = extract_code_for_parse(completion)
                     valid_syntax, syntax_error = check_python_syntax(code)
                     completion = cleanup_completion(completion)
+
+                    model_name = ""
+                    if args.model == "transformers":
+                        model_name = args.model_path or ""
+                    elif args.model == "ollama":
+                        model_name = args.ollama_model or ""
 
                     record = {
                         "task_id": task_id,
@@ -211,6 +252,7 @@ def main() -> None:
                         "prompt": full_prompt,
                         "completion": completion,
                         "model": args.model,
+                        "model_name": model_name,
                         "model_path": args.model_path,
                         "repeat": r,
                         "timestamp": time.time(),
