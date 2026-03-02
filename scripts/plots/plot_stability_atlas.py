@@ -46,12 +46,18 @@ def main() -> None:
     mistral = load("metrics/ollama_mistral_7b_stability.csv")
     metric = "ast_jaccard_mean"
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6), sharey=True, constrained_layout=True)
     im1 = plot(axes[0], llama, "Llama3.2:3b", metric)
     im2 = plot(axes[1], mistral, "Mistral:7b", metric)
-    fig.colorbar(im2, ax=axes.ravel().tolist(), shrink=0.8, label="AST Jaccard")
+    fig.colorbar(
+        im2,
+        ax=axes.ravel().tolist(),
+        shrink=0.8,
+        pad=0.04,
+        fraction=0.05,
+        label="AST Jaccard",
+    )
     fig.suptitle("Stability Atlas (AST Jaccard)")
-    plt.tight_layout()
     Path("figures").mkdir(exist_ok=True)
     plt.savefig("figures/stability_atlas.png", dpi=200)
 
