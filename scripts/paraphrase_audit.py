@@ -24,9 +24,11 @@ python3 scripts/paraphrase_audit.py \
 
 Output CSV columns
 ------------------
-task_id, dataset_source, perturbation_name, model, prompt_file, repeat,
-passed, completion_preview, human_label, notes
+task_id, dataset_source, perturbation_name, model, model_name, prompt_file,
+repeat, passed, prompt_preview, completion_preview, human_label, notes
 
+- model_name: concrete model identifier (e.g. "llama3.2:3b") vs generic backend
+- prompt_preview: first N chars of the full prompt sent to the model
 - human_label: annotator fills this in (e.g. "correct", "incorrect", "partial")
 - notes: annotator free-text remarks
 """
@@ -56,9 +58,14 @@ def load_runs(path: str) -> List[Dict[str, Any]]:
     return records
 
 
-def load_eval(path: str) -> Dict[Tuple[str, str, str, str, int], int]:
-    """Load eval CSV into a lookup dict keyed by (dataset_source, task_id, prompt_file, model, repeat)."""
-    results: Dict[Tuple[str, str, str, str, int], int] = {}
+def load_eval(path: str) -> Dict[Tuple[str, str, str, str, str, int], int]:
+    """Load eval CSV into a lookup dict.
+
+    Key: (dataset_source, task_id, prompt_file, model, model_name, repeat)
+    model_name is included so that mixed runs (e.g. several Ollama models whose
+    'model' field is all "ollama") are disambiguated correctly.
+    """
+    results: Dict[Tuple[str, str, str, str, str, int], int] = {}
     with Path(path).open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -67,6 +74,7 @@ def load_eval(path: str) -> Dict[Tuple[str, str, str, str, int], int]:
                 row.get("task_id", ""),
                 row.get("prompt_file", ""),
                 row.get("model", ""),
+                row.get("model_name", ""),
                 int(row.get("repeat", 0)),
             )
             results[key] = int(row.get("passed", 0))
@@ -116,19 +124,22 @@ def sample_task_ids(
     rng = random.Random(seed)
 
     if prioritize_unstable and stability_rows:
-        scored: List[Tuple[float, str]] = []
-        seen_in_stability: Set[str] = set()
+        # stability.csv has one row per (task, prompt_file), so aggregate to
+        # one score per task by taking the minimum exact_match_rate.  This
+        # avoids duplicate task IDs in the ranking and ensures we always
+        # return up to n distinct tasks.
+        task_min_emr: Dict[str, float] = {}
         for row in stability_rows:
             tid = str(row.get("task_id", ""))
             if tid not in all_ids_set:
                 continue
             emr = float(row.get("exact_match_rate", 1.0))
-            scored.append((emr, tid))
-            seen_in_stability.add(tid)
-        # Sort ascending: most unstable (lowest exact_match_rate) first.
-        scored.sort(key=lambda x: x[0])
-        selected = [tid for _, tid in scored][:n]
-        # Fill remaining slots with random tasks not yet selected.
+            if tid not in task_min_emr or emr < task_min_emr[tid]:
+                task_min_emr[tid] = emr
+        # Sort ascending: most unstable (lowest min exact_match_rate) first.
+        ranked = sorted(task_min_emr, key=lambda t: task_min_emr[t])
+        selected = ranked[:n]
+        # Fill remaining slots with random tasks not covered by stability CSV.
         if len(selected) < n:
             remaining = [tid for tid in all_ids if tid not in set(selected)]
             rng.shuffle(remaining)
@@ -170,6 +181,10 @@ def main() -> None:
     parser.add_argument(
         "--prioritize-unstable", action="store_true",
         help="Rank tasks by lowest exact_match_rate first; requires --stability-csv"
+    )
+    parser.add_argument(
+        "--prompt-chars", type=int, default=200,
+        help="Max characters of prompt shown in prompt_preview (default: 200)"
     )
     parser.add_argument(
         "--completion-chars", type=int, default=300,
@@ -223,9 +238,11 @@ def main() -> None:
         "dataset_source",
         "perturbation_name",
         "model",
+        "model_name",
         "prompt_file",
         "repeat",
         "passed",
+        "prompt_preview",
         "completion_preview",
         "human_label",
         "notes",
@@ -240,13 +257,16 @@ def main() -> None:
         dataset_source = str(rec.get("dataset_source", ""))
         prompt_file = str(rec.get("prompt_file", ""))
         model = str(rec.get("model", ""))
+        model_name = str(rec.get("model_name", ""))
         repeat = int(rec.get("repeat", 0))
         completion = str(rec.get("completion", ""))
+        prompt = str(rec.get("prompt", ""))
 
-        # Inline newlines so the cell stays on one spreadsheet line.
-        preview = completion[: args.completion_chars].replace("\n", "\\n")
+        # Inline newlines so each field stays on one spreadsheet line.
+        prompt_preview = prompt[: args.prompt_chars].replace("\n", "\\n")
+        completion_preview = completion[: args.completion_chars].replace("\n", "\\n")
 
-        eval_key = (dataset_source, tid, prompt_file, model, repeat)
+        eval_key = (dataset_source, tid, prompt_file, model, model_name, repeat)
         passed_val: Any = eval_map.get(eval_key, "") if eval_map else ""
 
         rows_out.append(
@@ -255,10 +275,12 @@ def main() -> None:
                 "dataset_source": dataset_source,
                 "perturbation_name": str(rec.get("perturbation_name", "")),
                 "model": model,
+                "model_name": model_name,
                 "prompt_file": prompt_file,
                 "repeat": repeat,
                 "passed": passed_val,
-                "completion_preview": preview,
+                "prompt_preview": prompt_preview,
+                "completion_preview": completion_preview,
                 "human_label": "",
                 "notes": "",
             }
