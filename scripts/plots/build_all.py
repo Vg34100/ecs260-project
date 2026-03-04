@@ -13,6 +13,8 @@ PLOTS = [
     "scripts/plots/plot_stability_bins.py",
     "scripts/plots/plot_mbpp_testgen_errors.py",
     "scripts/plots/plot_prompt_heatmap.py",
+    "scripts/plots/plot_prompt_stability_bar.py",
+    "scripts/plots/plot_bug_confusion.py",
 ]
 
 
