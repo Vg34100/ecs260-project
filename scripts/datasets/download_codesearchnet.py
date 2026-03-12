@@ -1,13 +1,17 @@
 """Download CodeSearchNet (Python) and write a JSONL subset."""
+
 from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Download CodeSearchNet Python to JSONL")
+    parser = argparse.ArgumentParser(
+        description="Download CodeSearchNet Python to JSONL"
+    )
     parser.add_argument("--split", default="train")
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--out", default="datasets/codesearchnet_py_subset.jsonl")
@@ -15,7 +19,8 @@ def main() -> None:
 
     from datasets import load_dataset
 
-    ds = load_dataset("code_search_net", "python", split=args.split)
+    token = os.getenv("HFTOKEN")
+    ds = load_dataset("code_search_net", "python", split=args.split, token=token)
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 

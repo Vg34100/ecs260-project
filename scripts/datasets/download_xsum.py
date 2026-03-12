@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 
@@ -15,7 +16,8 @@ def main() -> None:
 
     from datasets import load_dataset
 
-    ds = load_dataset("xsum", split=args.split)
+    token = os.getenv("HFTOKEN")
+    ds = load_dataset("xsum", split=args.split, token=token)
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 

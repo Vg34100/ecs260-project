@@ -3,6 +3,10 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
+
+
+PY = sys.executable
 
 
 def run(cmd: list[str]) -> None:
@@ -24,7 +28,7 @@ def main() -> None:
 
     # Codegen (Llama)
     run([
-        "python3", "scripts/run_codegen.py",
+        PY, "scripts/run_codegen.py",
         "--dataset", "datasets/nominal/HumanEval_py.jsonl",
         "--model", "ollama",
         "--ollama-model", args.llama_model,
@@ -34,13 +38,13 @@ def main() -> None:
         "--out", "runs/ollama_llama32_3b.jsonl",
     ])
     run([
-        "python3", "scripts/eval_codegen.py",
+        PY, "scripts/eval_codegen.py",
         "--dataset", "datasets/nominal/HumanEval_py.jsonl",
         "--runs", "runs/ollama_llama32_3b.jsonl",
         "--out", "metrics/ollama_llama32_3b_eval.csv",
     ])
     run([
-        "python3", "scripts/metrics/compute_stability.py",
+        PY, "scripts/metrics/compute_stability.py",
         "--runs", "runs/ollama_llama32_3b.jsonl",
         "--eval", "metrics/ollama_llama32_3b_eval.csv",
         "--out", "metrics/ollama_llama32_3b_stability.csv",
@@ -49,7 +53,7 @@ def main() -> None:
 
     # Codegen (Mistral)
     run([
-        "python3", "scripts/run_codegen.py",
+        PY, "scripts/run_codegen.py",
         "--dataset", "datasets/nominal/HumanEval_py.jsonl",
         "--model", "ollama",
         "--ollama-model", args.mistral_model,
@@ -59,13 +63,13 @@ def main() -> None:
         "--out", "runs/ollama_mistral_7b.jsonl",
     ])
     run([
-        "python3", "scripts/eval_codegen.py",
+        PY, "scripts/eval_codegen.py",
         "--dataset", "datasets/nominal/HumanEval_py.jsonl",
         "--runs", "runs/ollama_mistral_7b.jsonl",
         "--out", "metrics/ollama_mistral_7b_eval.csv",
     ])
     run([
-        "python3", "scripts/metrics/compute_stability.py",
+        PY, "scripts/metrics/compute_stability.py",
         "--runs", "runs/ollama_mistral_7b.jsonl",
         "--eval", "metrics/ollama_mistral_7b_eval.csv",
         "--out", "metrics/ollama_mistral_7b_stability.csv",
@@ -74,19 +78,19 @@ def main() -> None:
 
     # Paraphrase sensitivity (Llama)
     run([
-        "python3", "scripts/metrics/compute_paraphrase_sensitivity.py",
+        PY, "scripts/metrics/compute_paraphrase_sensitivity.py",
         "--stability", "metrics/ollama_llama32_3b_stability.csv",
         "--out", "metrics/ollama_llama32_3b_paraphrase.csv",
     ])
     run([
-        "python3", "scripts/metrics/aggregate_paraphrase_sensitivity.py",
+        PY, "scripts/metrics/aggregate_paraphrase_sensitivity.py",
         "--paraphrase", "metrics/ollama_llama32_3b_paraphrase.csv",
         "--out", "metrics/ollama_llama32_3b_paraphrase_summary.csv",
     ])
 
     # Model comparison
     run([
-        "python3", "scripts/metrics/compare_models.py",
+        PY, "scripts/metrics/compare_models.py",
         "--inputs",
         "metrics/ollama_llama32_3b_stability.csv",
         "metrics/ollama_mistral_7b_stability.csv",
@@ -95,19 +99,19 @@ def main() -> None:
 
     # Task feature analysis
     run([
-        "python3", "scripts/metrics/compute_task_features.py",
+        PY, "scripts/metrics/compute_task_features.py",
         "--runs", "runs/ollama_llama32_3b.jsonl",
         "--eval", "metrics/ollama_llama32_3b_eval.csv",
         "--out", "metrics/task_features_llama32_3b.csv",
     ])
     run([
-        "python3", "scripts/metrics/compute_task_features.py",
+        PY, "scripts/metrics/compute_task_features.py",
         "--runs", "runs/ollama_mistral_7b.jsonl",
         "--eval", "metrics/ollama_mistral_7b_eval.csv",
         "--out", "metrics/task_features_mistral_7b.csv",
     ])
     run([
-        "python3", "scripts/metrics/analyze_task_features.py",
+        PY, "scripts/metrics/analyze_task_features.py",
         "--inputs",
         "metrics/task_features_llama32_3b.csv",
         "metrics/task_features_mistral_7b.csv",
@@ -116,7 +120,7 @@ def main() -> None:
 
     if args.include_summarization:
         run([
-            "python3", "scripts/tasks/summarization/run_summarization.py",
+            PY, "scripts/tasks/summarization/run_summarization.py",
             "--dataset", "datasets/xsum_subset.jsonl",
             "--model", "ollama",
             "--ollama-model", args.llama_model,
@@ -126,14 +130,14 @@ def main() -> None:
             "--out", "runs/xsum_llama32_3b.jsonl",
         ])
         run([
-            "python3", "scripts/tasks/summarization/eval_summarization.py",
+            PY, "scripts/tasks/summarization/eval_summarization.py",
             "--runs", "runs/xsum_llama32_3b.jsonl",
             "--out", "metrics/xsum_llama32_3b_eval.csv",
             "--device", "cuda",
         ])
 
         run([
-            "python3", "scripts/tasks/code_summarization/run_code_summarization.py",
+            PY, "scripts/tasks/code_summarization/run_code_summarization.py",
             "--dataset", "datasets/codesearchnet_py_subset.jsonl",
             "--model", "ollama",
             "--ollama-model", args.llama_model,
@@ -143,7 +147,7 @@ def main() -> None:
             "--out", "runs/codesearchnet_llama32_3b.jsonl",
         ])
         run([
-            "python3", "scripts/tasks/code_summarization/eval_code_summarization.py",
+            PY, "scripts/tasks/code_summarization/eval_code_summarization.py",
             "--runs", "runs/codesearchnet_llama32_3b.jsonl",
             "--out", "metrics/codesearchnet_llama32_3b_eval.csv",
             "--device", "cuda",
@@ -151,7 +155,7 @@ def main() -> None:
 
     if args.include_bug:
         run([
-            "python3", "scripts/tasks/bug_detection/run_bug_detection.py",
+            PY, "scripts/tasks/bug_detection/run_bug_detection.py",
             "--dataset", "datasets/defect_subset_balanced.jsonl",
             "--model", "ollama",
             "--ollama-model", args.llama_model,
@@ -161,14 +165,14 @@ def main() -> None:
             "--out", "runs/defect_llama32_3b_balanced.jsonl",
         ])
         run([
-            "python3", "scripts/tasks/bug_detection/eval_bug_detection.py",
+            PY, "scripts/tasks/bug_detection/eval_bug_detection.py",
             "--runs", "runs/defect_llama32_3b_balanced.jsonl",
             "--out", "metrics/defect_llama32_3b_balanced_eval.csv",
         ])
 
     if args.include_testgen:
         run([
-            "python3", "scripts/tasks/test_generation/run_test_generation.py",
+            PY, "scripts/tasks/test_generation/run_test_generation.py",
             "--dataset", "datasets/nominal/mbpp_wtest.jsonl",
             "--model", "ollama",
             "--ollama-model", args.llama_model,
@@ -178,14 +182,14 @@ def main() -> None:
             "--out", "runs/mbpp_testgen_llama32_3b.jsonl",
         ])
         run([
-            "python3", "scripts/tasks/test_generation/eval_test_generation.py",
+            PY, "scripts/tasks/test_generation/eval_test_generation.py",
             "--dataset", "datasets/nominal/mbpp_wtest.jsonl",
             "--runs", "runs/mbpp_testgen_llama32_3b.jsonl",
             "--out", "metrics/mbpp_testgen_llama32_3b_eval.csv",
         ])
 
     # Plots
-    run(["python3", "scripts/plots/build_all.py"])
+    run([PY, "scripts/plots/build_all.py"])
 
 
 if __name__ == "__main__":

@@ -6,3 +6,6 @@ torch
 transformers
 huggingface_hub
 python-dotenv
+zss
+sentence_transformers
+datasets
